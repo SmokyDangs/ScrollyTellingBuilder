@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aorta Project - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css?v=11">
+    <link rel="stylesheet" href="css/dashboard.css?v=8">
+</head>
+<body class="dashboard-page">
+    <nav class="navbar">
+        <a href="index.html" class="nav-logo">Aorta <span>Project</span></a>
+        <div class="nav-toggle" id="nav-toggle">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <ul class="nav-links" id="nav-links">
+            <li><a href="index.html" class="active">Dashboard</a></li>
+            <li><a href="scrollytelling-dissection.html">Option 1</a></li>
+            <li><a href="scrollytelling-aneurysm.html">Option 2</a></li>
+        </ul>
+    </nav>
+
+    <div class="nav-menu-mobile" id="nav-menu-mobile">
+        <ul>
+            <li><a href="index.html" class="active">Dashboard</a></li>
+            <li><a href="scrollytelling-dissection.html">Option 1</a></li>
+            <li><a href="scrollytelling-aneurysm.html">Option 2</a></li>
+        </ul>
+    </div>
+
+    <main class="dashboard-shell">
+        <section class="dashboard-heading" aria-labelledby="dashboard-title">
+            <p class="dashboard-kicker">Scrollytelling Router</p>
+            <h1 id="dashboard-title">Bitte waehlen Sie eine Story-Version</h1>
+            <p>Beide Optionen nutzen dieselbe 3D- und Scroll-Logik. Die medizinischen Inhalte sind getrennt modularisiert und koennen separat bearbeitet werden.</p>
+        </section>
+
+        <section class="option-grid" aria-label="Story Auswahl">
+            <a class="option-card option-card-dissection" href="scrollytelling-dissection.html">
+                <span class="option-number">Option 1</span>
+                <h2>Aortendissektion</h2>
+                <p>Akute Wandspaltung, Symptome, Diagnose und Therapiepfad.</p>
+                <span class="option-action">Story starten</span>
+            </a>
+
+            <a class="option-card option-card-aneurysm" href="scrollytelling-aneurysm.html">
+                <span class="option-number">Option 2</span>
+                <h2>Aortenaneurysma</h2>
+                <p>Stumme Erweiterung, Risikofaktoren, Verlauf und Versorgung.</p>
+                <span class="option-action">Story starten</span>
+            </a>
+        </section>
+    </main>
+
+    <script>
+        const navToggle = document.getElementById('nav-toggle');
+        const navMenu = document.getElementById('nav-menu-mobile');
+        if (navToggle && navMenu) {
+            navToggle.addEventListener('click', () => navMenu.classList.toggle('active'));
+        }
+    </script>
+</body>
+</html>
