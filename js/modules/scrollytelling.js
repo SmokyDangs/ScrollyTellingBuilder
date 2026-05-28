@@ -482,13 +482,32 @@ function applyResponsiveAortaLayout(section = 0) {
         group.scale.setScalar(targetScale);
         baseScales.set(group, targetScale);
 
-        // Erneutes Messen für finale Zentrierung
+        // Erneutes Messen für finale Zentrierung und Canvas-Check
         const finalBox = new THREE.Box3().setFromObject(group);
         const center = finalBox.getCenter(new THREE.Vector3());
         
         group.position.x = -center.x;
         group.position.y = yTarget - center.y;
         group.position.z = -center.z;
+
+        // Sicherheitscheck: Falls das Modell trotz Skalierung zu nah an die Kamera kommt
+        // oder die Frustum-Grenzen sprengt, passen wir die Kamera/Skalierung an.
+        const cameraDistance = camera1.position.distanceTo(group.position);
+        const fov = camera1.fov * (Math.PI / 180);
+        const visibleHeight = 2 * Math.tan(fov / 2) * cameraDistance;
+        const visibleWidth = visibleHeight * camera1.aspect;
+
+        const groupSize = finalBox.getSize(new THREE.Vector3());
+        const paddingFactor = 0.85; // 15% Puffer zum Rand
+
+        if (groupSize.x > visibleWidth * paddingFactor || groupSize.y > visibleHeight * paddingFactor) {
+            const scaleDown = Math.min(
+                (visibleWidth * paddingFactor) / groupSize.x,
+                (visibleHeight * paddingFactor) / groupSize.y
+            );
+            group.scale.multiplyScalar(scaleDown);
+            baseScales.set(group, targetScale * scaleDown);
+        }
     });
 }
 
@@ -566,18 +585,22 @@ function updateCameraScroll() {
 }
 
 function updateNavLinks(sectionIndex) {
-    let navIndex = 0;
-    if (sectionIndex >= 15) navIndex = 6; 
-    else if (sectionIndex >= 12) navIndex = 5; 
-    else if (sectionIndex >= 10) navIndex = 4; 
-    else if (sectionIndex >= 7) navIndex = 3; 
-    else if (sectionIndex >= 5) navIndex = 2; 
-    else if (sectionIndex >= 3) navIndex = 1; 
-    else navIndex = 0;
+    const navItems = storyConfig.nav || [];
+    let activeNavIndex = -1;
+    
+    navItems.forEach((item, index) => {
+        const targetSectionMatch = item.href.match(/#s(\d+)/);
+        if (targetSectionMatch) {
+            const targetIndex = parseInt(targetSectionMatch[1], 10) - 1;
+            if (targetIndex <= sectionIndex) {
+                activeNavIndex = index;
+            }
+        }
+    });
 
     [document.querySelectorAll('.nav-links a'), document.querySelectorAll('.nav-menu-mobile a')].forEach((links) => {
         links.forEach((link, index) => {
-            link.classList.toggle('active', index === navIndex);
+            link.classList.toggle('active', index === activeNavIndex);
         });
     });
 }

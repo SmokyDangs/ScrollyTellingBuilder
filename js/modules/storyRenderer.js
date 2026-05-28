@@ -1,6 +1,6 @@
 import { storyVersions } from './storyContent.js?v=2';
 
-const iconLibrary = {
+export const iconLibrary = {
     aorta: '<path d="M12 3c3 2 5 5 5 9 0 5-3 9-5 9s-5-4-5-9c0-4 2-7 5-9Z"/><path d="M12 8v11"/><path d="M9 11c2 1 4 1 6 0"/>',
     patient: '<circle cx="12" cy="7" r="4"/><path d="M5.5 21a6.5 6.5 0 0 1 13 0"/>',
     alert: '<path d="m21 16-8.5-14-8.5 14a2 2 0 0 0 1.7 3h13.6a2 2 0 0 0 1.7-3Z"/><path d="M12 8v4"/><path d="M12 16h.01"/>',
@@ -54,7 +54,8 @@ const abbreviationLegend = {
 };
 
 function renderIcon(key) {
-    const iconName = statIconMap[key] || 'summary';
+    // Check if key is direct name in library or needs mapping
+    const iconName = iconLibrary[key] ? key : (statIconMap[key] || 'summary');
     return `
         <svg class="stat-icon-svg" viewBox="0 0 24 24" aria-hidden="true">
             ${iconLibrary[iconName]}
@@ -123,14 +124,16 @@ function renderChart(chart, editPath = '') {
     const type = chart.chartType || chart.type;
 
     if (type === 'meter') {
+        const colorStyle = chart.color ? `background: ${chart.color};` : '';
+        const radiusStyle = chart.rounded ? 'border-radius: 999px;' : 'border-radius: 0;';
         return `
             <div class="mini-chart mini-chart-meter">
                 <div class="mini-chart-head">
                     <strong${labelPath}>${chart.label}</strong>
                     <span${editPath ? ` data-edit-path="${editPath}.value"` : ''}>${chart.value}%</span>
                 </div>
-                <div class="meter-track">
-                    <span style="width: ${clampPercent(chart.value)}%"></span>
+                <div class="meter-track" style="${radiusStyle}">
+                    <span style="width: ${clampPercent(chart.value)}%; ${colorStyle}${radiusStyle}"></span>
                 </div>
                 ${chart.caption ? `<p${editPath ? ` data-edit-path="${editPath}.caption"` : ''}>${chart.caption}</p>` : ''}
             </div>
@@ -138,19 +141,24 @@ function renderChart(chart, editPath = '') {
     }
 
     if (type === 'split') {
+        const radiusStyle = chart.rounded ? 'border-radius: 999px;' : 'border-radius: 0;';
         return `
             <div class="mini-chart mini-chart-split">
                 <div class="mini-chart-head">
                     <strong${labelPath}>${chart.label}</strong>
                     <span>${(chart.items || []).map((item) => item.label).join(' / ')}</span>
                 </div>
-                <div class="split-track">
-                    ${(chart.items || []).map((item) => `<span style="flex-basis: ${clampPercent(item.value)}%"></span>`).join('')}
+                <div class="split-track" style="${radiusStyle}">
+                    ${(chart.items || []).map((item) => {
+                        const itemColor = item.color ? `background: ${item.color};` : '';
+                        return `<span style="flex-basis: ${clampPercent(item.value)}%; ${itemColor}${radiusStyle}"></span>`;
+                    }).join('')}
                 </div>
             </div>
         `;
     }
 
+    const radiusStyle = chart.rounded ? 'border-radius: 999px;' : 'border-radius: 0;';
     return `
         <div class="mini-chart mini-chart-bars${type === 'flow' ? ' mini-chart-flow' : ''}">
             <div class="mini-chart-head">
@@ -158,12 +166,17 @@ function renderChart(chart, editPath = '') {
                 <span>Index</span>
             </div>
             <div class="bar-grid">
-                ${(chart.items || []).map((item, itemIndex) => `
-                    <div class="bar-item">
-                        <span class="bar-label"${editPath ? ` data-edit-path="${editPath}.items.${itemIndex}.label"` : ''}>${item.label}</span>
-                        <span class="bar-track"><span style="width: ${clampPercent(item.value)}%"></span></span>
-                    </div>
-                `).join('')}
+                ${(chart.items || []).map((item, itemIndex) => {
+                    const itemColor = item.color ? `background: ${item.color};` : '';
+                    return `
+                        <div class="bar-item">
+                            <span class="bar-label"${editPath ? ` data-edit-path="${editPath}.items.${itemIndex}.label"` : ''}>${item.label}</span>
+                            <span class="bar-track" style="${radiusStyle}">
+                                <span style="width: ${clampPercent(item.value)}%; ${itemColor}${radiusStyle}"></span>
+                            </span>
+                        </div>
+                    `;
+                }).join('')}
             </div>
         </div>
     `;
@@ -199,19 +212,49 @@ function renderElements(elements = [], editBasePath = 'sections.0') {
 
     return elements.map((element, index) => {
         const elementPath = `${editBasePath}.elements.${index}`;
+        const attr = `data-editor-element="${index}"`;
 
         if (element.type === 'heading') {
-            return `<h3 class="info-heading" data-edit-path="${elementPath}.text">${element.text || 'Neue Ueberschrift'}</h3>`;
+            return `<h3 class="info-heading" ${attr} data-edit-path="${elementPath}.text">${element.text || 'Neue Ueberschrift'}</h3>`;
         }
 
         if (element.type === 'text') {
-            return `<p class="info-text" data-edit-path="${elementPath}.text">${element.text || 'Neuer Text'}</p>`;
+            return `<p class="info-text" ${attr} data-edit-path="${elementPath}.text">${element.text || 'Neuer Text'}</p>`;
+        }
+
+        if (element.type === 'quote') {
+            return `
+                <blockquote class="info-quote" ${attr}>
+                    <p data-edit-path="${elementPath}.text">${element.text || 'Zitat Text'}</p>
+                    ${element.author ? `<cite data-edit-path="${elementPath}.author">${element.author}</cite>` : ''}
+                </blockquote>
+            `;
+        }
+
+        if (element.type === 'image') {
+            return `
+                <figure class="info-image" ${attr}>
+                    <img src="${element.src}" alt="${element.alt || ''}">
+                    ${element.caption ? `<figcaption data-edit-path="${elementPath}.caption">${element.caption}</figcaption>` : ''}
+                </figure>
+            `;
+        }
+
+        if (element.type === 'video') {
+            return `
+                <div class="info-video" ${attr}>
+                    <div class="video-container">
+                        <iframe src="${element.url}" frameborder="0" allowfullscreen></iframe>
+                    </div>
+                    ${element.caption ? `<p class="video-caption" data-edit-path="${elementPath}.caption">${element.caption}</p>` : ''}
+                </div>
+            `;
         }
 
         if (element.type === 'stat') {
             const legends = collectAbbreviations(`${element.icon} ${element.label} ${element.text}`);
             return `
-                <div class="stats-box stats-box-extra">
+                <div class="stats-box stats-box-extra" ${attr}>
                     <div class="icon-placeholder">${renderIcon(element.icon || 'A')}</div>
                     <div>
                         <strong data-edit-path="${elementPath}.label">${element.label || 'Info:'}</strong>
@@ -223,7 +266,15 @@ function renderElements(elements = [], editBasePath = 'sections.0') {
         }
 
         if (element.type === 'chart') {
-            return renderChart(element, elementPath);
+            return `<div ${attr}>${renderChart(element, elementPath)}</div>`;
+        }
+
+        if (element.type === 'iconGrid') {
+            return `<div ${attr}>${renderIconGrid(element.items)}</div>`;
+        }
+
+        if (element.type === 'iconImages') {
+            return `<div ${attr}>${renderIconImages(element.items)}</div>`;
         }
 
         return '';
@@ -252,8 +303,6 @@ function renderSections(sections = [], version = 'aneurysm') {
                     <h2 data-edit-path="${editBasePath}.title">${section.title}</h2>
                     ${renderPlaceholder(section)}
                     ${renderElements(section.elements, editBasePath)}
-                    ${renderIconGrid(section.iconGrid)}
-                    ${renderIconImages(section.iconImages)}
                 </div>
             </section>
         `;

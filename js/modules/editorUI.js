@@ -8,6 +8,8 @@ function cloneConfig(config) {
     return JSON.parse(JSON.stringify(config));
 }
 
+import { iconLibrary } from './storyRenderer.js';
+
 export function initEditorUI({
     version,
     storyConfig: initialStoryConfig,
@@ -34,34 +36,74 @@ export function initEditorUI({
             </div>
             <span class="editor-save-state" id="editor-save-state">Bereit</span>
         </div>
-        <div class="editor-current" id="editor-current"></div>
-        <div class="editor-row">
-            <label for="editor-section">Sektion</label>
-            <select id="editor-section"></select>
+        
+        <div class="editor-tabs">
+            <button type="button" class="editor-tab-btn is-active" data-tab="current">Inhalt</button>
+            <button type="button" class="editor-tab-btn" data-tab="structure">Sektionen</button>
+            <button type="button" class="editor-tab-btn" data-tab="navigation">Kapitel</button>
         </div>
-        <div class="editor-row">
-            <label for="editor-model">3D-Modell</label>
-            <select id="editor-model"></select>
+
+        <div class="editor-tab-content is-active" data-tab-id="current">
+            <div class="editor-current" id="editor-current"></div>
+            <div class="editor-row">
+                <label for="editor-section">Sektion auswählen</label>
+                <select id="editor-section"></select>
+            </div>
+            <div class="editor-row">
+                <label for="editor-model">3D-Modell</label>
+                <select id="editor-model"></select>
+            </div>
+            
+            <div class="editor-builder">
+                <div class="editor-builder-head">
+                    <strong>Elemente</strong>
+                </div>
+                <div class="editor-palette" aria-label="Elemente hinzufuegen">
+                    <button type="button" draggable="true" data-editor-action="add-heading" data-editor-drag-type="heading" title="Ueberschrift">H</button>
+                    <button type="button" draggable="true" data-editor-action="add-text" data-editor-drag-type="text" title="Text">P</button>
+                    <button type="button" draggable="true" data-editor-action="add-quote" data-editor-drag-type="quote" title="Zitat">"</button>
+                    <button type="button" draggable="true" data-editor-action="add-image" data-editor-drag-type="image" title="Bild">Img</button>
+                    <button type="button" draggable="true" data-editor-action="add-video" data-editor-drag-type="video" title="Video">Vid</button>
+                    <button type="button" draggable="true" data-editor-action="add-stat" data-editor-drag-type="stat" title="Statistik">Stat</button>
+                    <button type="button" draggable="true" data-editor-action="add-meter" data-editor-drag-type="meter" title="Meter">Meter</button>
+                    <button type="button" draggable="true" data-editor-action="add-bars" data-editor-drag-type="bars" title="Balken">Bars</button>
+                    <button type="button" draggable="true" data-editor-action="add-split" data-editor-drag-type="split" title="Split">Split</button>
+                </div>
+                <div class="editor-elements" id="editor-elements"></div>
+            </div>
+
+            <div class="editor-upload" id="editor-upload" tabindex="0" role="button">
+                <input id="editor-model-file" type="file" accept=".glb,model/gltf-binary">
+                <span>GLB-Datei ablegen</span>
+                <small>ersetzt das Modell der gewaehlten Sektion</small>
+            </div>
+            <p class="editor-file-status" id="editor-file-status"></p>
+            
+            <div class="editor-actions">
+                <button type="button" data-editor-action="reset-model">Modell reset</button>
+            </div>
         </div>
-        <div class="editor-builder">
-            <div class="editor-builder-head">
-                <strong>Elemente</strong>
-                <button type="button" data-editor-action="add-section">+ Sektion</button>
-            </div>
-            <div class="editor-palette" aria-label="Elemente hinzufuegen">
-                <button type="button" draggable="true" data-editor-action="add-heading" data-editor-drag-type="heading">Ueberschrift</button>
-                <button type="button" draggable="true" data-editor-action="add-text" data-editor-drag-type="text">Text</button>
-                <button type="button" draggable="true" data-editor-action="add-stat" data-editor-drag-type="stat">Statbox</button>
-                <button type="button" draggable="true" data-editor-action="add-meter" data-editor-drag-type="meter">Meter</button>
-                <button type="button" draggable="true" data-editor-action="add-bars" data-editor-drag-type="bars">Balken</button>
-                <button type="button" draggable="true" data-editor-action="add-split" data-editor-drag-type="split">Split</button>
-            </div>
-            <div class="editor-elements" id="editor-elements"></div>
+
+        <div class="editor-tab-content" data-tab-id="structure">
             <div class="editor-section-builder">
-                <strong>Sektionen</strong>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong>Sektionen verwalten</strong>
+                    <button type="button" data-editor-action="add-section" style="padding: 4px 10px; font-size: 0.75rem;">+ Sektion</button>
+                </div>
                 <div class="editor-sections" id="editor-sections"></div>
             </div>
         </div>
+
+        <div class="editor-tab-content" data-tab-id="navigation">
+            <div class="editor-section-builder">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <strong>Kapitel (Navbar)</strong>
+                    <button type="button" data-editor-action="add-nav-item" style="padding: 4px 10px; font-size: 0.75rem;">+ Kapitel</button>
+                </div>
+                <div class="editor-nav" id="editor-nav"></div>
+            </div>
+        </div>
+
         <div class="editor-properties" id="editor-properties">
             <div class="editor-properties-head">
                 <strong>Eigenschaften</strong>
@@ -69,18 +111,14 @@ export function initEditorUI({
             </div>
             <div id="editor-property-form"></div>
         </div>
-        <div class="editor-upload" id="editor-upload" tabindex="0" role="button">
-            <input id="editor-model-file" type="file" accept=".glb,model/gltf-binary">
-            <span>GLB-Datei ablegen</span>
-            <small>ersetzt das Modell der gewaehlten Sektion</small>
+
+        <div class="editor-panel-footer">
+            <div class="editor-actions" style="margin-top: 0;">
+                <button type="button" data-editor-action="export">Export JSON</button>
+                <button type="button" data-editor-action="reset-all">Reset All</button>
+            </div>
+            <textarea id="editor-export" readonly aria-label="Editor Export"></textarea>
         </div>
-        <p class="editor-file-status" id="editor-file-status"></p>
-        <div class="editor-actions">
-            <button type="button" data-editor-action="reset-model">Modell reset</button>
-            <button type="button" data-editor-action="export">Export</button>
-            <button type="button" data-editor-action="reset-all">Alle Aenderungen zuruecksetzen</button>
-        </div>
-        <textarea id="editor-export" readonly aria-label="Editor Export"></textarea>
     `;
     document.body.appendChild(shell);
 
@@ -90,6 +128,16 @@ export function initEditorUI({
     toggle.setAttribute('aria-pressed', 'false');
     toggle.textContent = 'Editor';
     document.body.appendChild(toggle);
+
+    const quickToolbar = document.createElement('div');
+    quickToolbar.className = 'editor-quick-toolbar';
+    quickToolbar.innerHTML = `
+        <button type="button" data-quick-action="edit" title="Bearbeiten">✎</button>
+        <button type="button" data-quick-action="move-up" title="Nach oben">↑</button>
+        <button type="button" data-quick-action="move-down" title="Nach unten">↓</button>
+        <button type="button" data-quick-action="delete" title="Löschen">×</button>
+    `;
+    document.body.appendChild(quickToolbar);
 
     const sectionSelect = shell.querySelector('#editor-section');
     const modelSelect = shell.querySelector('#editor-model');
@@ -102,6 +150,17 @@ export function initEditorUI({
     const elementList = shell.querySelector('#editor-elements');
     const sectionList = shell.querySelector('#editor-sections');
     const storyTitleDisplay = shell.querySelector('#editor-story-title');
+
+    // Tab switching logic
+    shell.querySelectorAll('.editor-tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tabId = btn.dataset.tab;
+            shell.querySelectorAll('.editor-tab-btn').forEach(b => b.classList.remove('is-active'));
+            shell.querySelectorAll('.editor-tab-content').forEach(c => c.classList.remove('is-active'));
+            btn.classList.add('is-active');
+            shell.querySelector(`[data-tab-id="${tabId}"]`).classList.add('is-active');
+        });
+    });
 
     function populateSectionSelect() {
         sectionSelect.innerHTML = '';
@@ -145,6 +204,7 @@ export function initEditorUI({
     function syncPanel() {
         const sectionIndex = getCurrentSection();
         updatePanelForSection(sectionIndex);
+        renderNavList();
     }
 
     function updatePanelForSection(sectionIndex) {
@@ -206,8 +266,13 @@ export function initEditorUI({
         if (!element) return 'Element';
         if (element.type === 'heading') return `H: ${stripTags(element.text).slice(0, 28) || 'Neu'}`;
         if (element.type === 'text') return `P: ${stripTags(element.text).slice(0, 28) || 'Neu'}`;
+        if (element.type === 'quote') return `Q: ${stripTags(element.text).slice(0, 28) || 'Zitat'}`;
+        if (element.type === 'image') return `I: ${element.caption || 'Bild'}`;
+        if (element.type === 'video') return `V: ${element.caption || 'Video'}`;
         if (element.type === 'stat') return `S: ${stripTags(element.label).slice(0, 24) || 'Info'}`;
         if (element.type === 'chart') return `C: ${stripTags(element.label).slice(0, 24) || element.chartType || 'Chart'}`;
+        if (element.type === 'iconGrid') return 'Icon Grid';
+        if (element.type === 'iconImages') return 'Bilder Liste';
         return element.type;
     }
 
@@ -233,8 +298,8 @@ export function initEditorUI({
         `).join('');
     }
 
-    function openProperties(elementIndex) {
-        const sectionIndex = Number(sectionSelect.value);
+    function openProperties(elementIndex, sectionIndex = null) {
+        if (sectionIndex === null) sectionIndex = Number(sectionSelect.value);
         const section = storyConfig.sections[sectionIndex];
         const element = section.elements?.[elementIndex];
         if (!element) return;
@@ -255,18 +320,61 @@ export function initEditorUI({
 
         let html = `<p style="margin: 0 0 10px; font-size: 0.8rem; color: #aaa;">Typ: <strong>${element.type}</strong></p>`;
 
-        if (element.type === 'text' || element.type === 'heading') {
+        if (element.type === 'text' || element.type === 'heading' || element.type === 'quote') {
             html += `
                 <div class="editor-row">
                     <label>Inhalt</label>
                     <textarea data-prop-path="${basePath}.text" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px; min-height: 80px;">${element.text || ''}</textarea>
                 </div>
             `;
+            if (element.type === 'quote') {
+                html += `
+                    <div class="editor-row">
+                        <label>Quelle / Autor</label>
+                        <input type="text" data-prop-path="${basePath}.author" value="${element.author || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                    </div>
+                `;
+            }
+        } else if (element.type === 'image') {
+            html += `
+                <div class="editor-row">
+                    <label>Bild URL</label>
+                    <input type="text" data-prop-path="${basePath}.src" value="${element.src || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                </div>
+                <div class="editor-row">
+                    <label>Alt-Text</label>
+                    <input type="text" data-prop-path="${basePath}.alt" value="${element.alt || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                </div>
+                <div class="editor-row">
+                    <label>Bildunterschrift</label>
+                    <input type="text" data-prop-path="${basePath}.caption" value="${element.caption || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                </div>
+            `;
+        } else if (element.type === 'video') {
+            html += `
+                <div class="editor-row">
+                    <label>Video URL (Embed)</label>
+                    <input type="text" data-prop-path="${basePath}.url" value="${element.url || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                </div>
+                <div class="editor-row">
+                    <label>Unterschrift</label>
+                    <input type="text" data-prop-path="${basePath}.caption" value="${element.caption || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                </div>
+            `;
         } else if (element.type === 'stat') {
             html += `
                 <div class="editor-row">
-                    <label>Icon (A, R, !, 3D, DNA...)</label>
-                    <input type="text" data-prop-path="${basePath}.icon" value="${element.icon || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                    <label>Icon waehlen</label>
+                    <div class="editor-icon-picker">
+                        ${Object.keys(iconLibrary).map(iconName => `
+                            <button type="button" class="icon-picker-btn${element.icon === iconName ? ' is-active' : ''}" 
+                                    data-prop-path="${basePath}.icon" data-value="${iconName}" title="${iconName}">
+                                <svg viewBox="0 0 24 24" style="width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2;">
+                                    ${iconLibrary[iconName]}
+                                </svg>
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
                 <div class="editor-row">
                     <label>Label</label>
@@ -283,6 +391,13 @@ export function initEditorUI({
                     <label>Label</label>
                     <input type="text" data-prop-path="${basePath}.label" value="${element.label || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
                 </div>
+                <div class="property-group">
+                    <strong style="font-size: 0.75rem; color: #888; display: block; margin-bottom: 8px;">Gestaltung</strong>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" data-prop-path="${basePath}.rounded" id="rounded-${elementIndex}" ${element.rounded ? 'checked' : ''}>
+                        <label for="rounded-${elementIndex}" style="margin: 0; text-transform: none; font-weight: normal;">Abgerundete Ecken</label>
+                    </div>
+                </div>
             `;
             if (element.chartType === 'meter') {
                 html += `
@@ -291,26 +406,44 @@ export function initEditorUI({
                         <input type="number" data-prop-path="${basePath}.value" value="${element.value || 0}" min="0" max="100" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
                     </div>
                     <div class="editor-row">
+                        <label>Farbe</label>
+                        <input type="color" data-prop-path="${basePath}.color" value="${element.color || '#ff4444'}" style="width: 100%; height: 32px; background: none; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; padding: 2px;">
+                    </div>
+                    <div class="editor-row">
                         <label>Unterschrift</label>
                         <input type="text" data-prop-path="${basePath}.caption" value="${element.caption || ''}" style="width: 100%; padding: 8px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
                     </div>
                 `;
             } else if (element.chartType === 'bars' || element.chartType === 'split' || element.chartType === 'flow') {
+                html += `
+                    <div style="margin-top: 16px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <strong style="font-size: 0.75rem; color: #888;">Datenpunkte</strong>
+                            <button type="button" class="add-chart-item" data-path="${basePath}.items" style="padding: 2px 8px; font-size: 0.7rem;">+ Hinzufuegen</button>
+                        </div>
+                `;
                 (element.items || []).forEach((item, idx) => {
                     html += `
-                        <div style="margin-top: 10px; padding: 8px; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; background: rgba(255,255,255,0.05);">
-                            <strong style="font-size: 0.75rem; color: #888;">Item ${idx + 1}</strong>
+                        <div style="margin-top: 10px; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; background: rgba(255,255,255,0.05); position: relative;">
+                            <button type="button" class="delete-chart-item" data-path="${basePath}.items" data-index="${idx}" style="position: absolute; top: 4px; right: 4px; background: none; border: 0; color: #ff4444; cursor: pointer;">&times;</button>
                             <div class="editor-row">
                                 <label>Label</label>
                                 <input type="text" data-prop-path="${basePath}.items.${idx}.label" value="${item.label || ''}" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
                             </div>
-                            <div class="editor-row">
-                                <label>Wert</label>
-                                <input type="number" data-prop-path="${basePath}.items.${idx}.value" value="${item.value || 0}" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 8px;">
+                                <div class="editor-row">
+                                    <label>Wert</label>
+                                    <input type="number" data-prop-path="${basePath}.items.${idx}.value" value="${item.value || 0}" style="width: 100%; padding: 6px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; border-radius: 4px;">
+                                </div>
+                                <div class="editor-row">
+                                    <label>Farbe</label>
+                                    <input type="color" data-prop-path="${basePath}.items.${idx}.color" value="${item.color || '#ff4444'}" style="width: 100%; height: 28px; background: none; border: 1px solid rgba(255,255,255,0.2); cursor: pointer; padding: 1px;">
+                                </div>
                             </div>
                         </div>
                     `;
                 });
+                html += `</div>`;
             }
         }
 
@@ -318,8 +451,40 @@ export function initEditorUI({
         form.querySelectorAll('input, textarea').forEach(input => {
             input.addEventListener('change', () => {
                 const path = input.dataset.propPath;
-                const value = input.type === 'number' ? Number(input.value) : input.value;
+                let value;
+                if (input.type === 'number') value = Number(input.value);
+                else if (input.type === 'checkbox') value = input.checked;
+                else value = input.value;
                 editorState.updatePath(path, value);
+            });
+        });
+
+        form.querySelector('.add-chart-item')?.addEventListener('click', (e) => {
+            const path = e.target.dataset.path;
+            const currentItems = editorState.getValue(path) || [];
+            editorState.updatePath(path, [...currentItems, { label: 'Neu', value: 50, color: '#ff4444' }]);
+            renderPropertyForm(element, elementIndex, sectionIndex); // Refresh form
+        });
+
+        form.querySelectorAll('.delete-chart-item').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const path = btn.dataset.path;
+                const index = parseInt(btn.dataset.index, 10);
+                const currentItems = editorState.getValue(path) || [];
+                editorState.updatePath(path, currentItems.filter((_, i) => i !== index));
+                renderPropertyForm(element, elementIndex, sectionIndex); // Refresh form
+            });
+        });
+
+        form.querySelectorAll('.icon-picker-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const path = btn.dataset.propPath;
+                const value = btn.dataset.value;
+                editorState.updatePath(path, value);
+                
+                // Update active state visually immediately
+                form.querySelectorAll('.icon-picker-btn').forEach(b => b.classList.remove('is-active'));
+                btn.classList.add('is-active');
             });
         });
     }
@@ -332,8 +497,51 @@ export function initEditorUI({
                 <button type="button" data-editor-action="jump-section" data-section-index="${index}">
                     ${index + 1}. ${stripTags(section.title).replace(/^\d+\.\s*/, '') || 'Sektion'}
                 </button>
+                <button type="button" data-editor-action="delete-section" data-section-index="${index}" style="margin-left: auto; padding: 2px 6px;">&times;</button>
             </div>
         `).join('');
+    }
+
+    function renderNavList() {
+        const navList = shell.querySelector('#editor-nav');
+        if (!navList) return;
+
+        const navItems = storyConfig.nav || [];
+        navList.innerHTML = navItems.map((item, index) => {
+            const targetSectionMatch = item.href.match(/#s(\d+)/);
+            const targetIndex = targetSectionMatch ? parseInt(targetSectionMatch[1], 10) - 1 : 0;
+            
+            return `
+                <div class="editor-nav-item" data-nav-index="${index}" style="display: flex; flex-direction: column; gap: 4px; padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                    <div style="display: flex; gap: 4px; align-items: center;">
+                        <input type="text" value="${item.label}" data-nav-prop="label" style="flex: 1; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff; padding: 4px; border-radius: 4px;">
+                        <button type="button" data-editor-action="delete-nav-item" data-nav-index="${index}">&times;</button>
+                    </div>
+                    <div style="display: flex; gap: 4px; align-items: center; font-size: 0.8rem;">
+                        <label>Ziel:</label>
+                        <select data-nav-prop="target" style="flex: 1; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 2px;">
+                            ${storyConfig.sections.map((s, i) => `
+                                <option value="#s${i + 1}" ${targetIndex === i ? 'selected' : ''}>Sektion ${i + 1}: ${stripTags(s.title).slice(0, 20)}</option>
+                            `).join('')}
+                        </select>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        navList.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', () => {
+                const navIndex = parseInt(input.closest('.editor-nav-item').dataset.navIndex, 10);
+                const prop = input.dataset.navProp;
+                const nextState = cloneConfig(editorState.state);
+                if (!nextState.nav) {
+                    nextState.nav = storyConfig.nav.map(n => ({ ...n }));
+                }
+                if (prop === 'label') nextState.nav[navIndex].label = input.value;
+                if (prop === 'target') nextState.nav[navIndex].href = input.value;
+                updateState(nextState, 'Kapitel aktualisiert');
+            });
+        });
     }
 
     function updateState(nextState, message = 'Gespeichert') {
@@ -341,7 +549,6 @@ export function initEditorUI({
         setStatus(message, 'saved');
     }
 
-    // Reactive listener for state changes
     editorState.on('change', (newState) => {
         state = newState;
         storyConfig = editorState.getEffectiveConfig();
@@ -349,11 +556,15 @@ export function initEditorUI({
         populateSectionSelect();
         syncPanel();
         setupEditableListeners();
+        renderNavList();
     });
 
     function createElement(type) {
         if (type === 'heading') return { type: 'heading', text: 'Neue Zwischenueberschrift' };
         if (type === 'text') return { type: 'text', text: 'Neuer Infotext. Klicken und direkt bearbeiten.' };
+        if (type === 'quote') return { type: 'quote', text: 'Zitat oder hervorgehobener Text.', author: 'Quelle' };
+        if (type === 'image') return { type: 'image', src: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800', alt: 'Medizinisches Bild', caption: 'Bildunterschrift' };
+        if (type === 'video') return { type: 'video', url: 'https://www.youtube.com/embed/dQw4w9WgXcQ', caption: 'Video Titel' };
         if (type === 'stat') return { type: 'stat', icon: 'A', label: 'Kennzahl:', text: 'Wichtige Information zur aktuellen Sektion.' };
         if (type === 'meter') return { type: 'chart', chartType: 'meter', label: 'Messwert', value: 72, caption: 'Kurze Einordnung' };
         if (type === 'bars') {
@@ -439,6 +650,34 @@ export function initEditorUI({
         updateState(nextState, 'Sektionen sortiert');
     }
 
+    function deleteSection(index) {
+        if (!confirm('Sektion wirklich loeschen?')) return;
+        const nextState = cloneConfig(editorState.state);
+        const order = getSectionOrder();
+        order.splice(index, 1);
+        nextState.sectionOrder = order;
+        updateState(nextState, 'Sektion entfernt');
+    }
+
+    function addNavItem() {
+        const nextState = cloneConfig(editorState.state);
+        if (!nextState.nav) {
+            nextState.nav = storyConfig.nav.map(n => ({ ...n }));
+        }
+        nextState.nav.push({ href: '#s1', label: 'Neues Kapitel' });
+        updateState(nextState, 'Kapitel hinzugefuegt');
+    }
+
+    function deleteNavItem(index) {
+        if (!confirm('Kapitel wirklich loeschen?')) return;
+        const nextState = cloneConfig(editorState.state);
+        if (!nextState.nav) {
+            nextState.nav = storyConfig.nav.map(n => ({ ...n }));
+        }
+        nextState.nav.splice(index, 1);
+        updateState(nextState, 'Kapitel entfernt');
+    }
+
     function setActive(nextActive) {
         active = nextActive;
         document.body.classList.toggle('editor-mode', active);
@@ -447,18 +686,21 @@ export function initEditorUI({
         syncPanel();
     }
 
+    let activeElementInfo = null;
+
     function setupEditableListeners() {
         document.querySelectorAll('[data-edit-path]').forEach((node) => {
             node.contentEditable = active ? 'true' : 'false';
             node.spellcheck = active;
             
-            // Re-setup listeners without cloning to preserve event state if needed, 
-            // but for simple reactive UI, cloning and replacing is safer to avoid multiple listeners.
             const newNode = node.cloneNode(true);
             node.parentNode.replaceChild(newNode, node);
             
             newNode.addEventListener('click', (event) => {
-                if (active && newNode.closest('a')) event.preventDefault();
+                if (active) {
+                    event.preventDefault();
+                    showQuickToolbar(newNode);
+                }
             });
             newNode.addEventListener('blur', () => {
                 if (active) saveEditableValue(newNode);
@@ -473,7 +715,107 @@ export function initEditorUI({
                 }
             });
         });
+
+        // Add drag support for story elements
+        document.querySelectorAll('[data-editor-element]').forEach((node) => {
+            node.draggable = active;
+            
+            if (active) {
+                node.addEventListener('dragstart', (event) => {
+                    const step = node.closest('.step');
+                    const sectionIndex = Number(step.dataset.sectionIndex);
+                    const elementIndex = Number(node.dataset.editorElement);
+                    
+                    writeDragData(event, {
+                        kind: 'element',
+                        fromSectionIndex: sectionIndex,
+                        elementIndex: elementIndex
+                    });
+                    
+                    node.classList.add('is-dragging-story');
+                    event.stopPropagation();
+                });
+
+                node.addEventListener('dragend', () => {
+                    node.classList.remove('is-dragging-story');
+                });
+            }
+        });
     }
+
+    function showQuickToolbar(node) {
+        const path = node.dataset.editPath;
+        if (!path) return;
+
+        const parts = path.split('.');
+        let sectionIndex = -1;
+        let elementIndex = -1;
+
+        if (parts[0] === 'sections' || parts[0] === 'extraSections') {
+            const rawIndex = Number(parts[1]);
+            if (parts[0] === 'sections') {
+                sectionIndex = storyConfig.sections.findIndex(s => s.__baseIndex === rawIndex);
+                if (sectionIndex === -1) sectionIndex = rawIndex;
+            } else {
+                sectionIndex = storyConfig.sections.findIndex(s => s.__extraIndex === rawIndex);
+            }
+            
+            if (parts[2] === 'elements') {
+                elementIndex = Number(parts[3]);
+            }
+        }
+
+        activeElementInfo = { node, path, sectionIndex, elementIndex };
+        
+        const rect = node.getBoundingClientRect();
+        quickToolbar.style.display = 'flex';
+        quickToolbar.style.top = `${window.scrollY + rect.top - 40}px`;
+        quickToolbar.style.left = `${rect.left}px`;
+        
+        const elements = storyConfig.sections[sectionIndex]?.elements || [];
+        quickToolbar.querySelector('[data-quick-action="move-up"]').style.display = elementIndex > 0 ? 'block' : 'none';
+        quickToolbar.querySelector('[data-quick-action="move-down"]').style.display = (elementIndex >= 0 && elementIndex < elements.length - 1) ? 'block' : 'none';
+        quickToolbar.querySelector('[data-quick-action="delete"]').style.display = elementIndex >= 0 ? 'block' : 'none';
+    }
+
+    quickToolbar.addEventListener('click', (event) => {
+        const action = event.target.closest('[data-quick-action]')?.dataset.quickAction;
+        if (!action || !activeElementInfo) return;
+
+        const { sectionIndex, elementIndex } = activeElementInfo;
+
+        if (action === 'edit') {
+            if (elementIndex >= 0) {
+                updatePanelForSection(sectionIndex);
+                openProperties(elementIndex, sectionIndex);
+            } else {
+                // Section title editing is handled by contentEditable
+                activeElementInfo.node.focus();
+            }
+        }
+
+        if (action === 'move-up' && elementIndex > 0) {
+            moveElement(sectionIndex, elementIndex, sectionIndex, elementIndex - 1);
+        }
+
+        if (action === 'move-down') {
+            moveElement(sectionIndex, elementIndex, sectionIndex, elementIndex + 1);
+        }
+
+        if (action === 'delete' && elementIndex >= 0) {
+            if (confirm('Element wirklich loeschen?')) {
+                deleteElement(sectionIndex, elementIndex);
+            }
+        }
+
+        quickToolbar.style.display = 'none';
+    });
+
+    document.addEventListener('click', (event) => {
+        if (!quickToolbar.contains(event.target) && !event.target.hasAttribute('data-edit-path')) {
+            quickToolbar.style.display = 'none';
+        }
+    });
 
     function saveEditableValue(element) {
         const path = element.dataset.editPath;
@@ -483,7 +825,10 @@ export function initEditorUI({
     }
 
     toggle.addEventListener('click', () => setActive(!active));
-    window.addEventListener('scroll', syncPanel, { passive: true });
+    window.addEventListener('scroll', () => {
+        syncPanel();
+        if (quickToolbar.style.display === 'flex') quickToolbar.style.display = 'none';
+    }, { passive: true });
 
     sectionSelect.addEventListener('change', () => {
         const sectionIndex = Number(sectionSelect.value);
@@ -564,18 +909,33 @@ export function initEditorUI({
         if (!data || (data.kind !== 'palette' && data.kind !== 'element')) return;
         event.preventDefault();
         event.dataTransfer.dropEffect = 'move';
-        elementList.classList.add('is-drop-target');
+        
+        elementList.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+        const insertIndex = getDropElementIndex(event);
+        const items = elementList.querySelectorAll('.editor-element-item');
+        
+        const indicator = document.createElement('div');
+        indicator.className = 'editor-drop-indicator';
+        indicator.style.margin = '4px 0';
+        
+        if (insertIndex !== null && insertIndex < items.length) {
+            items[insertIndex].before(indicator);
+        } else {
+            elementList.appendChild(indicator);
+        }
     });
 
     elementList.addEventListener('dragleave', (event) => {
-        if (!elementList.contains(event.relatedTarget)) elementList.classList.remove('is-drop-target');
+        if (!elementList.contains(event.relatedTarget)) {
+            elementList.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+        }
     });
 
     elementList.addEventListener('drop', (event) => {
         const data = readDragData(event);
         if (!data || (data.kind !== 'palette' && data.kind !== 'element')) return;
         event.preventDefault();
-        elementList.classList.remove('is-drop-target');
+        elementList.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
         const sectionIndex = Number(sectionSelect.value);
         const insertIndex = getDropElementIndex(event);
 
@@ -607,18 +967,51 @@ export function initEditorUI({
         reorderSections(data.fromIndex, toIndex === null ? storyConfig.sections.length - 1 : toIndex);
     });
 
+    function getDropElementIndexInStory(event, step) {
+        const elements = Array.from(step.querySelectorAll('[data-editor-element]'));
+        if (!elements.length) return null;
+
+        for (let i = 0; i < elements.length; i++) {
+            const rect = elements[i].getBoundingClientRect();
+            if (event.clientY < rect.top + rect.height / 2) {
+                return i;
+            }
+        }
+        return elements.length;
+    }
+
     document.addEventListener('dragover', (event) => {
         if (!active) return;
         const data = readDragData(event);
         const step = event.target.closest?.('#story .step');
         if (!step || !data || (data.kind !== 'palette' && data.kind !== 'element')) return;
         event.preventDefault();
+        
+        // Visual feedback for target section
+        document.querySelectorAll('.step.editor-drop-target').forEach(s => s.classList.remove('editor-drop-target'));
         step.classList.add('editor-drop-target');
+        
+        // Visual feedback for insertion point
+        document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+        const insertIndex = getDropElementIndexInStory(event, step);
+        const elements = step.querySelectorAll('[data-editor-element]');
+        
+        const indicator = document.createElement('div');
+        indicator.className = 'editor-drop-indicator';
+        
+        if (insertIndex !== null && insertIndex < elements.length) {
+            elements[insertIndex].before(indicator);
+        } else {
+            step.querySelector('.text-box').appendChild(indicator);
+        }
     });
 
     document.addEventListener('dragleave', (event) => {
         const step = event.target.closest?.('#story .step');
-        if (step && !step.contains(event.relatedTarget)) step.classList.remove('editor-drop-target');
+        if (step && !step.contains(event.relatedTarget)) {
+            step.classList.remove('editor-drop-target');
+            document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+        }
     });
 
     document.addEventListener('drop', (event) => {
@@ -627,13 +1020,17 @@ export function initEditorUI({
         const step = event.target.closest?.('#story .step');
         if (!step || !data || (data.kind !== 'palette' && data.kind !== 'element')) return;
         event.preventDefault();
+        
         step.classList.remove('editor-drop-target');
+        document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+        
         const sectionIndex = Number(step.dataset.sectionIndex);
+        const insertIndex = getDropElementIndexInStory(event, step);
 
         if (data.kind === 'palette') {
-            addElementToSection(sectionIndex, data.type);
+            addElementToSection(sectionIndex, data.type, insertIndex);
         } else {
-            moveElement(data.fromSectionIndex, data.elementIndex, sectionIndex);
+            moveElement(data.fromSectionIndex, data.elementIndex, sectionIndex, insertIndex);
         }
     });
 
@@ -746,10 +1143,25 @@ export function initEditorUI({
 
         if (action === 'add-heading') addElementToSection(Number(sectionSelect.value), 'heading');
         if (action === 'add-text') addElementToSection(Number(sectionSelect.value), 'text');
+        if (action === 'add-quote') addElementToSection(Number(sectionSelect.value), 'quote');
+        if (action === 'add-image') addElementToSection(Number(sectionSelect.value), 'image');
+        if (action === 'add-video') addElementToSection(Number(sectionSelect.value), 'video');
         if (action === 'add-stat') addElementToSection(Number(sectionSelect.value), 'stat');
         if (action === 'add-meter') addElementToSection(Number(sectionSelect.value), 'meter');
         if (action === 'add-bars') addElementToSection(Number(sectionSelect.value), 'bars');
         if (action === 'add-split') addElementToSection(Number(sectionSelect.value), 'split');
+
+        if (action === 'delete-section') {
+            deleteSection(Number(event.target.dataset.sectionIndex));
+        }
+
+        if (action === 'add-nav-item') {
+            addNavItem();
+        }
+
+        if (action === 'delete-nav-item') {
+            deleteNavItem(Number(event.target.dataset.navIndex));
+        }
 
         if (action === 'delete-element') {
             deleteElement(Number(sectionSelect.value), Number(event.target.dataset.elementIndex));

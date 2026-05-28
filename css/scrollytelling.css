@@ -135,6 +135,45 @@ body {
     transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
+/* Quick Actions Toolbar */
+.editor-quick-toolbar {
+    position: absolute;
+    display: none;
+    gap: 4px;
+    z-index: 3000;
+    background: rgba(10, 10, 12, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 8px;
+    padding: 4px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+}
+
+.editor-quick-toolbar button {
+    min-width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #fff;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.18s ease;
+}
+
+.editor-quick-toolbar button:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.editor-quick-toolbar button[data-quick-action="delete"]:hover {
+    background: rgba(255, 68, 68, 0.3);
+    color: #ff9a9a;
+}
+
 .editor-mode .editor-panel {
     opacity: 1;
     pointer-events: auto;
@@ -263,6 +302,16 @@ body {
     gap: 7px;
 }
 
+.editor-palette button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4px;
+    font-size: 0.7rem;
+    min-height: 36px;
+}
+
 .editor-elements {
     display: grid;
     gap: 7px;
@@ -348,8 +397,81 @@ body {
 }
 
 .editor-element-item.is-dragging,
-.editor-section-item.is-dragging {
-    opacity: 0.42;
+.editor-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 8px;
+}
+
+.editor-tab-btn {
+    flex: 1;
+    padding: 8px 4px;
+    background: transparent;
+    border: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.editor-tab-btn:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.editor-tab-btn.is-active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.editor-tab-content {
+    display: none;
+}
+
+.editor-tab-content.is-active {
+    display: block;
+}
+
+.editor-panel-footer {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.editor-section-item, .editor-nav-item, .editor-element-item {
+    background: rgba(255, 255, 255, 0.035);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    transition: all 0.2s ease;
+}
+
+.editor-section-item:hover, .editor-nav-item:hover, .editor-element-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.editor-drop-indicator {
+    height: 4px;
+    background: var(--accent-red);
+    box-shadow: 0 0 10px var(--accent-red);
+    border-radius: 2px;
+    margin: 8px 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+}
+
+.editor-drop-target {
+    outline: 2px solid var(--accent-red);
+    outline-offset: 4px;
+    border-radius: 8px;
 }
 
 .editor-elements.is-drop-target,
@@ -554,6 +676,19 @@ body {
     background: rgba(255, 255, 255, 0.09);
 }
 
+.is-dragging-story {
+    opacity: 0.4;
+    transform: scale(0.98);
+}
+
+.editor-drop-indicator {
+    height: 4px;
+    background: var(--accent-red);
+    border-radius: 2px;
+    margin: 10px 0;
+    box-shadow: 0 0 10px var(--accent-red);
+}
+
 #progress-bar {
     position: fixed;
     top: var(--nav-height);
@@ -631,7 +766,8 @@ body.in-comparison #divider {
     border: 1px solid rgba(255, 255, 255, 0.14);
     padding: clamp(26px, 3vw, 40px);
     border-radius: 8px;
-    max-width: 590px;
+    width: 520px; /* Feste Breite */
+    max-width: 90vw;
     text-align: left;
     box-shadow: 0 24px 70px rgba(0,0,0,0.48);
     transition: opacity 0.45s ease, transform 0.45s ease, border-color 0.45s ease;
@@ -677,6 +813,82 @@ body.in-comparison #divider {
 
 .text-box p:last-child {
     margin-bottom: 0;
+}
+
+/* New Elements Styles */
+.info-quote {
+    margin: 22px 0;
+    padding: 16px 20px;
+    border-left: 4px solid var(--accent-red);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 0 8px 8px 0;
+}
+
+.info-quote p {
+    font-style: italic !important;
+    font-size: 1.1rem !important;
+    line-height: 1.5 !important;
+    color: #fff !important;
+    margin-bottom: 8px !important;
+    border: 0 !important;
+    padding: 0 !important;
+}
+
+.info-quote cite {
+    display: block;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: right;
+    font-style: normal;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.info-image {
+    margin: 22px 0;
+}
+
+.info-image img {
+    width: 100%;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    display: block;
+}
+
+.info-image figcaption {
+    margin-top: 8px;
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-align: center;
+}
+
+.info-video {
+    margin: 22px 0;
+}
+
+.video-container {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 */
+    height: 0;
+    overflow: hidden;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.video-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.video-caption {
+    margin-top: 8px !important;
+    font-size: 0.85rem !important;
+    color: rgba(255, 255, 255, 0.6) !important;
+    text-align: center;
 }
 
 .placeholder-box {

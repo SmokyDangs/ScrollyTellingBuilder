@@ -56,6 +56,16 @@ function setDeepValue(target, path, value) {
     cursor[keys[keys.length - 1]] = value;
 }
 
+function getDeepValue(target, path) {
+    let cursor = target;
+    const keys = Array.isArray(path) ? path : path.split('.');
+    for (const key of keys) {
+        if (cursor?.[key] === undefined) return undefined;
+        cursor = cursor[key];
+    }
+    return cursor;
+}
+
 function openEditorDb() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -112,6 +122,10 @@ export class EditorState extends EventEmitter {
             writeWindowNameState(windowState);
         }
         this.emit('change', this.state);
+    }
+
+    getValue(path) {
+        return getDeepValue(this.state, path);
     }
 
     removeState() {
@@ -228,7 +242,7 @@ export class EditorState extends EventEmitter {
 
         if (state.title) config.title = state.title;
         if (state.nav) {
-            config.nav = config.nav.map((item, index) => ({ ...item, label: state.nav[index]?.label ?? item.label }));
+            config.nav = state.nav;
         }
 
         const convertToUnifiedElements = (section, index) => {
@@ -250,6 +264,12 @@ export class EditorState extends EventEmitter {
                     type: 'chart',
                     ...presetChart
                 });
+            }
+            if (section.iconGrid) {
+                elements.push({ type: 'iconGrid', items: section.iconGrid });
+            }
+            if (section.iconImages) {
+                elements.push({ type: 'iconImages', items: section.iconImages });
             }
             if (section.elements) {
                 elements.push(...section.elements);
@@ -283,6 +303,8 @@ export class EditorState extends EventEmitter {
             delete merged.statLabel;
             delete merged.statText;
             delete merged.chart;
+            delete merged.iconGrid;
+            delete merged.iconImages;
             
             return merged;
         };
@@ -312,12 +334,8 @@ export class EditorState extends EventEmitter {
             ];
         }
         if (state.sectionOrder?.length) {
-            const orderedIds = new Set(state.sectionOrder);
             const byId = new Map(config.sections.map((section) => [section.__sectionId, section]));
-            config.sections = [
-                ...state.sectionOrder.map((sectionId) => byId.get(sectionId)).filter(Boolean),
-                ...config.sections.filter((section) => !orderedIds.has(section.__sectionId))
-            ];
+            config.sections = state.sectionOrder.map((sectionId) => byId.get(sectionId)).filter(Boolean);
         }
 
         return config;
