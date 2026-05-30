@@ -298,6 +298,22 @@ async function init() {
     setupUI();
     updateCameraScroll();
     window.addEventListener('scroll', requestRender, { passive: true });
+    window.addEventListener('resize', () => {
+        const container = document.getElementById('container3d');
+        if (!container || !renderer || !camera1) return;
+        
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+        
+        renderer.setSize(width, height);
+        camera1.aspect = width / height;
+        camera1.updateProjectionMatrix();
+        camera2.aspect = width / height;
+        camera2.updateProjectionMatrix();
+        
+        applyResponsiveAortaLayout(getScrollState().currentSection);
+        requestRender();
+    });
     controls1.addEventListener('change', requestRender);
 
     const [sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf, dnaGltf] = await Promise.all([
@@ -437,7 +453,9 @@ function centerGroup(group) {
 
 let baseScales = new Map();
 function applyResponsiveAortaLayout(section = 0) {
-    const mobilePortrait = window.innerWidth <= 820;
+    const container = document.getElementById('container3d');
+    const width = container ? container.clientWidth : window.innerWidth;
+    const mobilePortrait = width <= 820;
     const yTarget = mobilePortrait ? 100 : 200; 
     const fitSize = mobilePortrait ? 420 : 620;
 
@@ -786,5 +804,5 @@ function setupUI() {
     
     setupTechTerms();
 }
-window.addEventListener('resize', () => { const container = document.getElementById('container3d'); if (container) { renderer.setSize(container.clientWidth, container.clientHeight); applyResponsiveAortaLayout(); } });
+
 init();

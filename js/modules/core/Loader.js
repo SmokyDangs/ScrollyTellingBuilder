@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as BufferGeometryUtils from 'three/addons/utils/BufferGeometryUtils.js';
 import { MeshoptDecoder } from 'https://unpkg.com/three@0.160.0/examples/jsm/libs/meshopt_decoder.module.js';
 
 export class Loader {
@@ -10,11 +11,53 @@ export class Loader {
 
     async loadModel(url) {
         try {
-            return await this.loader.loadAsync(url);
+            const gltf = await this.loader.loadAsync(url);
+            this.optimizeGeometry(gltf.scene);
+            return gltf;
         } catch (e) {
             console.error("Failed to load model:", url, e);
             return null;
         }
+    }
+
+    optimizeGeometry(scene) {
+        const meshesByMaterial = new Map();
+
+        scene.traverse((child) => {
+            if (child.isMesh) {
+                const materialKey = child.material.uuid || 'default';
+                if (!meshesByMaterial.has(materialKey)) {
+                    meshesByMaterial.set(materialKey, []);
+                }
+                meshesByMaterial.get(materialKey).push(child);
+            }
+        });
+
+        meshesByMaterial.forEach((meshes, materialKey) => {
+            if (meshes.length > 1) {
+                const geometries = meshes.map(m => {
+                    const g = m.geometry.clone();
+                    g.applyMatrix4(m.matrixWorld);
+                    return g;
+                });
+
+                try {
+                    const mergedGeometry = BufferGeometryUtils.mergeGeometries(geometries, true);
+                    const mergedMesh = new THREE.Mesh(mergedGeometry, meshes[0].material);
+                    mergedMesh.name = `Merged_${meshes[0].name}`;
+                    
+                    const parent = scene; // Attach to root or common parent if possible
+                    parent.add(mergedMesh);
+
+                    meshes.forEach(m => {
+                        if (m.parent) m.parent.remove(m);
+                        m.geometry.dispose();
+                    });
+                } catch (err) {
+                    console.warn("Geometry merging failed for material:", materialKey, err);
+                }
+            }
+        });
     }
 
     processWall(model, settings) {

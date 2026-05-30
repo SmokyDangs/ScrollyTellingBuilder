@@ -23,6 +23,7 @@ export function initEditorUI({
 }) {
     let active = false;
     let statusTimer = null;
+    let currentDragData = null;
     let storyConfig = initialStoryConfig;
     let state = editorState.state;
 
@@ -59,15 +60,15 @@ export function initEditorUI({
                     <strong>Elemente</strong>
                 </div>
                 <div class="editor-palette" aria-label="Elemente hinzufuegen">
-                    <button type="button" draggable="true" data-editor-action="add-heading" data-editor-drag-type="heading" title="Ueberschrift">H</button>
-                    <button type="button" draggable="true" data-editor-action="add-text" data-editor-drag-type="text" title="Text">P</button>
-                    <button type="button" draggable="true" data-editor-action="add-quote" data-editor-drag-type="quote" title="Zitat">"</button>
-                    <button type="button" draggable="true" data-editor-action="add-image" data-editor-drag-type="image" title="Bild">Img</button>
-                    <button type="button" draggable="true" data-editor-action="add-video" data-editor-drag-type="video" title="Video">Vid</button>
-                    <button type="button" draggable="true" data-editor-action="add-stat" data-editor-drag-type="stat" title="Statistik">Stat</button>
-                    <button type="button" draggable="true" data-editor-action="add-meter" data-editor-drag-type="meter" title="Meter">Meter</button>
-                    <button type="button" draggable="true" data-editor-action="add-bars" data-editor-drag-type="bars" title="Balken">Bars</button>
-                    <button type="button" draggable="true" data-editor-action="add-split" data-editor-drag-type="split" title="Split">Split</button>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-heading" data-editor-drag-type="heading" title="Ueberschrift">H</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-text" data-editor-drag-type="text" title="Text">P</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-quote" data-editor-drag-type="quote" title="Zitat">"</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-image" data-editor-drag-type="image" title="Bild">Img</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-video" data-editor-drag-type="video" title="Video">Vid</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-stat" data-editor-drag-type="stat" title="Statistik">Stat</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-meter" data-editor-drag-type="meter" title="Meter">Meter</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-bars" data-editor-drag-type="bars" title="Balken">Bars</div>
+                    <div role="button" tabindex="0" draggable="true" data-editor-action="add-split" data-editor-drag-type="split" title="Split">Split</div>
                 </div>
                 <div class="editor-elements" id="editor-elements"></div>
             </div>
@@ -114,6 +115,7 @@ export function initEditorUI({
 
         <div class="editor-panel-footer">
             <div class="editor-actions" style="margin-top: 0;">
+                <button type="button" data-editor-action="save-local" style="background: var(--accent-red); color: #fff;">Speichern</button>
                 <button type="button" data-editor-action="export">Export JSON</button>
                 <button type="button" data-editor-action="reset-all">Reset All</button>
             </div>
@@ -133,6 +135,7 @@ export function initEditorUI({
     quickToolbar.className = 'editor-quick-toolbar';
     quickToolbar.innerHTML = `
         <button type="button" data-quick-action="edit" title="Bearbeiten">✎</button>
+        <button type="button" data-quick-action="duplicate" title="Duplizieren">❐</button>
         <button type="button" data-quick-action="move-up" title="Nach oben">↑</button>
         <button type="button" data-quick-action="move-down" title="Nach unten">↓</button>
         <button type="button" data-quick-action="delete" title="Löschen">×</button>
@@ -544,12 +547,48 @@ export function initEditorUI({
         });
     }
 
+    function harvestCurrentEdits() {
+        document.querySelectorAll('[data-edit-path]').forEach(node => {
+            if (active && node.contentEditable === 'true') {
+                const path = node.dataset.editPath;
+                const value = node.innerHTML.trim();
+                
+                const currentVal = editorState.getValue(path);
+                if (currentVal !== value) {
+                    console.log('Harvesting edit:', path, value);
+                    setDeepValue(editorState.state, path, value);
+                }
+            }
+        });
+    }
+
+    function setDeepValue(target, path, value) {
+        let cursor = target;
+        const keys = path.split('.');
+        
+        for (let i = 0; i < keys.length - 1; i++) {
+            const key = keys[i];
+            
+            // Fix: Check if key exists and is object. If not, initialize.
+            if (cursor[key] === undefined || cursor[key] === null || typeof cursor[key] !== 'object') {
+                const nextKey = keys[i + 1];
+                cursor[key] = /^\d+$/.test(nextKey) ? [] : {};
+            }
+            cursor = cursor[key];
+        }
+        
+        console.log('Setting path', path, 'to', value);
+        cursor[keys[keys.length - 1]] = value;
+    }
+
     function updateState(nextState, message = 'Gespeichert') {
+        harvestCurrentEdits();
         editorState.writeState(nextState);
         setStatus(message, 'saved');
     }
 
     editorState.on('change', (newState) => {
+        console.log('Editor state change detected, re-rendering UI...');
         state = newState;
         storyConfig = editorState.getEffectiveConfig();
         storyTitleDisplay.textContent = storyConfig.title;
@@ -584,6 +623,7 @@ export function initEditorUI({
     }
 
     function addElementToSection(sectionIndex, type, insertIndex = null) {
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         const mutableSection = getMutableSection(nextState, sectionIndex);
         const elements = getCurrentElements(nextState, sectionIndex);
@@ -594,6 +634,7 @@ export function initEditorUI({
     }
 
     function addSection() {
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         const nextNumber = storyConfig.sections.length + 1;
         nextState.extraSections = [
@@ -615,6 +656,7 @@ export function initEditorUI({
     }
 
     function deleteElement(sectionIndex, elementIndex) {
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         const mutableSection = getMutableSection(nextState, sectionIndex);
         const currentElements = getCurrentElements(nextState, sectionIndex);
@@ -622,7 +664,22 @@ export function initEditorUI({
         updateState(nextState, 'Element entfernt');
     }
 
+    function duplicateElement(sectionIndex, elementIndex) {
+        harvestCurrentEdits();
+        const nextState = cloneConfig(editorState.state);
+        const mutableSection = getMutableSection(nextState, sectionIndex);
+        const elements = getCurrentElements(nextState, sectionIndex);
+        const elementToCopy = elements[elementIndex];
+        if (!elementToCopy) return;
+
+        const newElement = cloneConfig(elementToCopy);
+        elements.splice(elementIndex + 1, 0, newElement);
+        mutableSection.elements = elements;
+        updateState(nextState, 'Element dupliziert');
+    }
+
     function moveElement(fromSectionIndex, elementIndex, toSectionIndex, insertIndex = null) {
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         const fromMutable = getMutableSection(nextState, fromSectionIndex);
         const toMutable = getMutableSection(nextState, toSectionIndex);
@@ -642,6 +699,7 @@ export function initEditorUI({
 
     function reorderSections(fromIndex, toIndex) {
         if (fromIndex === toIndex) return;
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         const order = getSectionOrder();
         const [sectionId] = order.splice(fromIndex, 1);
@@ -652,6 +710,7 @@ export function initEditorUI({
 
     function deleteSection(index) {
         if (!confirm('Sektion wirklich loeschen?')) return;
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         const order = getSectionOrder();
         order.splice(index, 1);
@@ -660,6 +719,7 @@ export function initEditorUI({
     }
 
     function addNavItem() {
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         if (!nextState.nav) {
             nextState.nav = storyConfig.nav.map(n => ({ ...n }));
@@ -670,6 +730,7 @@ export function initEditorUI({
 
     function deleteNavItem(index) {
         if (!confirm('Kapitel wirklich loeschen?')) return;
+        harvestCurrentEdits();
         const nextState = cloneConfig(editorState.state);
         if (!nextState.nav) {
             nextState.nav = storyConfig.nav.map(n => ({ ...n }));
@@ -684,6 +745,11 @@ export function initEditorUI({
         toggle.setAttribute('aria-pressed', String(active));
         setupEditableListeners();
         syncPanel();
+        
+        // Trigger resize to adapt 3D view
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 300); // Wait for CSS transition
     }
 
     let activeElementInfo = null;
@@ -699,6 +765,13 @@ export function initEditorUI({
             newNode.addEventListener('click', (event) => {
                 if (active) {
                     event.preventDefault();
+                    event.stopPropagation();
+                    
+                    // Highlight
+                    document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+                    const elementNode = newNode.closest('[data-editor-element]');
+                    if (elementNode) elementNode.classList.add('is-selected');
+
                     showQuickToolbar(newNode);
                 }
             });
@@ -716,11 +789,37 @@ export function initEditorUI({
             });
         });
 
-        // Add drag support for story elements
+        // Add drag and click support for story elements
         document.querySelectorAll('[data-editor-element]').forEach((node) => {
             node.draggable = active;
             
             if (active) {
+                node.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                    
+                    // Highlight
+                    document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+                    node.classList.add('is-selected');
+                    
+                    // Open Properties
+                    const step = node.closest('.step');
+                    const sectionIndex = Number(step.dataset.sectionIndex);
+                    const elementIndex = Number(node.dataset.editorElement);
+                    
+                    // Switch Tab to 'Inhalt'
+                    shell.querySelectorAll('.editor-tab-btn').forEach(b => b.classList.remove('is-active'));
+                    shell.querySelectorAll('.editor-tab-content').forEach(c => c.classList.remove('is-active'));
+                    shell.querySelector('[data-tab="current"]').classList.add('is-active');
+                    shell.querySelector('[data-tab-id="current"]').classList.add('is-active');
+
+                    updatePanelForSection(sectionIndex);
+                    openProperties(elementIndex, sectionIndex);
+                    
+                    // Also show toolbar
+                    const editNode = node.querySelector('[data-edit-path]') || node;
+                    showQuickToolbar(editNode);
+                });
+
                 node.addEventListener('dragstart', (event) => {
                     const step = node.closest('.step');
                     const sectionIndex = Number(step.dataset.sectionIndex);
@@ -738,13 +837,14 @@ export function initEditorUI({
 
                 node.addEventListener('dragend', () => {
                     node.classList.remove('is-dragging-story');
+                    currentDragData = null;
                 });
             }
         });
     }
 
     function showQuickToolbar(node) {
-        const path = node.dataset.editPath;
+        const path = node.dataset.editPath || node.closest('[data-edit-path]')?.dataset.editPath;
         if (!path) return;
 
         const parts = path.split('.');
@@ -776,6 +876,7 @@ export function initEditorUI({
         quickToolbar.querySelector('[data-quick-action="move-up"]').style.display = elementIndex > 0 ? 'block' : 'none';
         quickToolbar.querySelector('[data-quick-action="move-down"]').style.display = (elementIndex >= 0 && elementIndex < elements.length - 1) ? 'block' : 'none';
         quickToolbar.querySelector('[data-quick-action="delete"]').style.display = elementIndex >= 0 ? 'block' : 'none';
+        quickToolbar.querySelector('[data-quick-action="duplicate"]').style.display = elementIndex >= 0 ? 'block' : 'none';
     }
 
     quickToolbar.addEventListener('click', (event) => {
@@ -792,6 +893,10 @@ export function initEditorUI({
                 // Section title editing is handled by contentEditable
                 activeElementInfo.node.focus();
             }
+        }
+
+        if (action === 'duplicate' && elementIndex >= 0) {
+            duplicateElement(sectionIndex, elementIndex);
         }
 
         if (action === 'move-up' && elementIndex > 0) {
@@ -814,6 +919,36 @@ export function initEditorUI({
     document.addEventListener('click', (event) => {
         if (!quickToolbar.contains(event.target) && !event.target.hasAttribute('data-edit-path')) {
             quickToolbar.style.display = 'none';
+        }
+
+        // Handle per-element toolbar buttons
+        if (!active) return;
+        const btn = event.target.closest('.element-toolbar-btn');
+        if (btn) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            const action = btn.dataset.editorAction;
+            const elementNode = btn.closest('[data-editor-element]');
+            if (!elementNode) return;
+            
+            const step = elementNode.closest('.step');
+            const sectionIndex = Number(step.dataset.sectionIndex);
+            const elementIndex = Number(elementNode.dataset.editorElement);
+            
+            if (action === 'edit-properties') {
+                updatePanelForSection(sectionIndex);
+                openProperties(elementIndex, sectionIndex);
+                
+                document.querySelectorAll('.is-selected').forEach(el => el.classList.remove('is-selected'));
+                elementNode.classList.add('is-selected');
+            }
+            
+            if (action === 'delete-element') {
+                if (confirm('Element wirklich loeschen?')) {
+                    deleteElement(sectionIndex, elementIndex);
+                }
+            }
         }
     });
 
@@ -839,12 +974,14 @@ export function initEditorUI({
     });
 
     function writeDragData(event, data) {
+        currentDragData = data;
         event.dataTransfer.effectAllowed = 'move';
         event.dataTransfer.setData('application/json', JSON.stringify(data));
         event.dataTransfer.setData('text/plain', JSON.stringify(data));
     }
 
     function readDragData(event) {
+        if (currentDragData) return currentDragData;
         const raw = event.dataTransfer.getData('application/json') || event.dataTransfer.getData('text/plain');
         if (!raw) return null;
         try {
@@ -902,6 +1039,7 @@ export function initEditorUI({
         shell.querySelectorAll('.is-dragging, .is-drop-target').forEach((node) => {
             node.classList.remove('is-dragging', 'is-drop-target');
         });
+        currentDragData = null;
     });
 
     elementList.addEventListener('dragover', (event) => {
@@ -967,8 +1105,12 @@ export function initEditorUI({
         reorderSections(data.fromIndex, toIndex === null ? storyConfig.sections.length - 1 : toIndex);
     });
 
+    const storyContainer = document.getElementById('story');
+
     function getDropElementIndexInStory(event, step) {
-        const elements = Array.from(step.querySelectorAll('[data-editor-element]'));
+        const textBox = step.querySelector('.text-box');
+        if (!textBox) return null;
+        const elements = Array.from(textBox.querySelectorAll('[data-editor-element]'));
         if (!elements.length) return null;
 
         for (let i = 0; i < elements.length; i++) {
@@ -980,58 +1122,96 @@ export function initEditorUI({
         return elements.length;
     }
 
-    document.addEventListener('dragover', (event) => {
-        if (!active) return;
-        const data = readDragData(event);
-        const step = event.target.closest?.('#story .step');
-        if (!step || !data || (data.kind !== 'palette' && data.kind !== 'element')) return;
-        event.preventDefault();
-        
-        // Visual feedback for target section
-        document.querySelectorAll('.step.editor-drop-target').forEach(s => s.classList.remove('editor-drop-target'));
-        step.classList.add('editor-drop-target');
-        
-        // Visual feedback for insertion point
-        document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
-        const insertIndex = getDropElementIndexInStory(event, step);
-        const elements = step.querySelectorAll('[data-editor-element]');
-        
-        const indicator = document.createElement('div');
-        indicator.className = 'editor-drop-indicator';
-        
-        if (insertIndex !== null && insertIndex < elements.length) {
-            elements[insertIndex].before(indicator);
-        } else {
-            step.querySelector('.text-box').appendChild(indicator);
+    document.addEventListener('dragenter', (event) => {
+        if (!active || !currentDragData) return;
+        if (currentDragData.kind === 'palette' || currentDragData.kind === 'element') {
+            const step = event.target.closest('.step');
+            if (step) {
+                event.preventDefault();
+            }
         }
     });
 
-    document.addEventListener('dragleave', (event) => {
-        const step = event.target.closest?.('#story .step');
-        if (step && !step.contains(event.relatedTarget)) {
-            step.classList.remove('editor-drop-target');
-            document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+    document.addEventListener('dragover', (event) => {
+        if (!active || !currentDragData) return;
+        
+        if (currentDragData.kind === 'palette' || currentDragData.kind === 'element') {
+            // Aggressively prevent default to enable drop
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'move';
+
+            const step = event.target.closest('.step');
+            if (step) {
+                // Visual feedback
+                document.querySelectorAll('.step.editor-drop-target').forEach(s => s.classList.remove('editor-drop-target'));
+                step.classList.add('editor-drop-target');
+                
+                // Indicator
+                document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+                const insertIndex = getDropElementIndexInStory(event, step);
+                const textBox = step.querySelector('.text-box');
+                if (textBox) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'editor-drop-indicator';
+                    const elements = textBox.querySelectorAll('[data-editor-element]');
+                    if (insertIndex !== null && insertIndex < elements.length) {
+                        elements[insertIndex].before(indicator);
+                    } else {
+                        textBox.appendChild(indicator);
+                    }
+                }
+            } else {
+                document.querySelectorAll('.step.editor-drop-target').forEach(s => s.classList.remove('editor-drop-target'));
+                document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+            }
         }
     });
 
     document.addEventListener('drop', (event) => {
-        if (!active) return;
-        const data = readDragData(event);
-        const step = event.target.closest?.('#story .step');
-        if (!step || !data || (data.kind !== 'palette' && data.kind !== 'element')) return;
-        event.preventDefault();
+        if (!active || !currentDragData) return;
         
-        step.classList.remove('editor-drop-target');
-        document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
-        
-        const sectionIndex = Number(step.dataset.sectionIndex);
-        const insertIndex = getDropElementIndexInStory(event, step);
+        console.log('Drop event triggered', currentDragData);
 
-        if (data.kind === 'palette') {
-            addElementToSection(sectionIndex, data.type, insertIndex);
-        } else {
-            moveElement(data.fromSectionIndex, data.elementIndex, sectionIndex, insertIndex);
+        if (currentDragData.kind === 'palette' || currentDragData.kind === 'element') {
+            const step = event.target.closest('.step');
+            console.log('Target step found:', !!step);
+
+            if (step) {
+                event.preventDefault();
+
+                const basePath = step.dataset.editBasePath;
+                console.log('Base Path:', basePath);
+
+                const insertIndex = getDropElementIndexInStory(event, step);
+                console.log('Insert Index:', insertIndex);
+
+                if (currentDragData.kind === 'palette' && currentDragData.type) {
+                    console.log('Adding element from palette:', currentDragData.type);
+
+                    // Use base path to update config directly
+                    const path = `${basePath}.elements`;
+                    const elements = editorState.getValue(path) || [];
+                    const nextIndex = insertIndex === null ? elements.length : Math.max(0, Math.min(insertIndex, elements.length));
+
+                    const newElements = [...elements];
+                    newElements.splice(nextIndex, 0, createElement(currentDragData.type));
+
+                    editorState.updatePath(path, newElements);
+                    setStatus('Element hinzugefuegt', 'saved');
+                } else if (currentDragData.kind === 'element') {
+                    // Keep moveElement for now, needs similar path-based fix
+                    const sectionIndex = Number(step.dataset.sectionIndex);
+                    console.log('Moving element:', currentDragData.fromSectionIndex, 'to', sectionIndex);
+                    moveElement(currentDragData.fromSectionIndex, currentDragData.elementIndex, sectionIndex, insertIndex);
+                }
+            }
+
         }
+        
+        // Clean up
+        document.querySelectorAll('.step.editor-drop-target').forEach(s => s.classList.remove('editor-drop-target'));
+        document.querySelectorAll('.editor-drop-indicator').forEach(i => i.remove());
+        currentDragData = null; // Clear immediately after drop
     });
 
     modelSelect.addEventListener('change', async () => {
@@ -1174,6 +1354,12 @@ export function initEditorUI({
 
         if (action === 'close-properties') {
             closeProperties();
+        }
+
+        if (action === 'save-local') {
+            harvestCurrentEdits();
+            editorState.writeState(editorState.state);
+            setStatus('Fortschritt gesichert!', 'saved');
         }
 
         if (action === 'export') {

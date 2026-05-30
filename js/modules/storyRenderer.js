@@ -207,46 +207,65 @@ function renderIconImages(images = []) {
     `;
 }
 
+function renderElementToolbar() {
+    return `
+        <div class="editor-element-toolbar">
+            <button type="button" class="element-toolbar-btn" data-editor-action="edit-properties" title="Bearbeiten">✎</button>
+            <button type="button" class="element-toolbar-btn delete" data-editor-action="delete-element" title="Löschen">×</button>
+        </div>
+    `;
+}
+
 function renderElements(elements = [], editBasePath = 'sections.0') {
     if (!elements || !elements.length) return '';
 
     return elements.map((element, index) => {
         const elementPath = `${editBasePath}.elements.${index}`;
         const attr = `data-editor-element="${index}"`;
+        const toolbar = renderElementToolbar();
 
         if (element.type === 'heading') {
-            return `<h3 class="info-heading" ${attr} data-edit-path="${elementPath}.text">${element.text || 'Neue Ueberschrift'}</h3>`;
+            return `<div class="element-wrapper" ${attr}>${toolbar}<h3 class="info-heading" data-edit-path="${elementPath}.text">${element.text || 'Neue Ueberschrift'}</h3></div>`;
         }
 
         if (element.type === 'text') {
-            return `<p class="info-text" ${attr} data-edit-path="${elementPath}.text">${element.text || 'Neuer Text'}</p>`;
+            return `<div class="element-wrapper" ${attr}>${toolbar}<p class="info-text" data-edit-path="${elementPath}.text">${element.text || 'Neuer Text'}</p></div>`;
         }
 
         if (element.type === 'quote') {
             return `
-                <blockquote class="info-quote" ${attr}>
-                    <p data-edit-path="${elementPath}.text">${element.text || 'Zitat Text'}</p>
-                    ${element.author ? `<cite data-edit-path="${elementPath}.author">${element.author}</cite>` : ''}
-                </blockquote>
+                <div class="element-wrapper" ${attr}>
+                    ${toolbar}
+                    <blockquote class="info-quote">
+                        <p data-edit-path="${elementPath}.text">${element.text || 'Zitat Text'}</p>
+                        ${element.author ? `<cite data-edit-path="${elementPath}.author">${element.author}</cite>` : ''}
+                    </blockquote>
+                </div>
             `;
         }
 
         if (element.type === 'image') {
             return `
-                <figure class="info-image" ${attr}>
-                    <img src="${element.src}" alt="${element.alt || ''}">
-                    ${element.caption ? `<figcaption data-edit-path="${elementPath}.caption">${element.caption}</figcaption>` : ''}
-                </figure>
+                <div class="element-wrapper" ${attr}>
+                    ${toolbar}
+                    <figure class="info-image">
+                        <img src="${element.src}" alt="${element.alt || ''}">
+                        ${element.caption ? `<figcaption data-edit-path="${elementPath}.caption">${element.caption}</figcaption>` : ''}
+                    </figure>
+                </div>
             `;
         }
 
         if (element.type === 'video') {
             return `
-                <div class="info-video" ${attr}>
-                    <div class="video-container">
-                        <iframe src="${element.url}" frameborder="0" allowfullscreen></iframe>
+                <div class="element-wrapper" ${attr}>
+                    ${toolbar}
+                    <div class="info-video">
+                        <div class="video-container">
+                            <iframe src="${element.url}" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                        ${element.caption ? `<p class="video-caption" data-edit-path="${elementPath}.caption">${element.caption}</p>` : ''}
                     </div>
-                    ${element.caption ? `<p class="video-caption" data-edit-path="${elementPath}.caption">${element.caption}</p>` : ''}
                 </div>
             `;
         }
@@ -254,27 +273,30 @@ function renderElements(elements = [], editBasePath = 'sections.0') {
         if (element.type === 'stat') {
             const legends = collectAbbreviations(`${element.icon} ${element.label} ${element.text}`);
             return `
-                <div class="stats-box stats-box-extra" ${attr}>
-                    <div class="icon-placeholder">${renderIcon(element.icon || 'A')}</div>
-                    <div>
-                        <strong data-edit-path="${elementPath}.label">${element.label || 'Info:'}</strong>
-                        <span data-edit-path="${elementPath}.text">${element.text || 'Neue Information'}</span>
-                        ${legends.length ? `<small class="abbr-legend">${legends.join(' · ')}</small>` : ''}
+                <div class="element-wrapper" ${attr}>
+                    ${toolbar}
+                    <div class="stats-box stats-box-extra">
+                        <div class="icon-placeholder">${renderIcon(element.icon || 'A')}</div>
+                        <div>
+                            <strong data-edit-path="${elementPath}.label">${element.label || 'Info:'}</strong>
+                            <span data-edit-path="${elementPath}.text">${element.text || 'Neue Information'}</span>
+                            ${legends.length ? `<small class="abbr-legend">${legends.join(' · ')}</small>` : ''}
+                        </div>
                     </div>
                 </div>
             `;
         }
 
         if (element.type === 'chart') {
-            return `<div ${attr}>${renderChart(element, elementPath)}</div>`;
+            return `<div class="element-wrapper" ${attr}>${toolbar}${renderChart(element, elementPath)}</div>`;
         }
 
         if (element.type === 'iconGrid') {
-            return `<div ${attr}>${renderIconGrid(element.items)}</div>`;
+            return `<div class="element-wrapper" ${attr}>${toolbar}${renderIconGrid(element.items)}</div>`;
         }
 
         if (element.type === 'iconImages') {
-            return `<div ${attr}>${renderIconImages(element.items)}</div>`;
+            return `<div class="element-wrapper" ${attr}>${toolbar}${renderIconImages(element.items)}</div>`;
         }
 
         return '';
@@ -298,7 +320,7 @@ function renderSections(sections = [], version = 'aneurysm') {
             : `sections.${Number.isInteger(section.__baseIndex) ? section.__baseIndex : index}`;
 
         return `
-            <section class="step" id="s${index + 1}" data-section-index="${index}">
+            <section class="step" id="s${index + 1}" data-section-index="${index}" data-edit-base-path="${editBasePath}">
                 <div class="text-box">
                     <h2 data-edit-path="${editBasePath}.title">${section.title}</h2>
                     ${renderPlaceholder(section)}
