@@ -255,6 +255,23 @@ async function init() {
     container.appendChild(renderer.domElement);
     createVisualStatus();
 
+    // 1. Initialize State
+    editorState.baseConfig = storyVersions[storyVersion];
+    editorState.state = editorState.readState();
+    console.log('Loaded editor state:', editorState.state);
+    
+    // 2. Setup Reactive Updates early
+    editorState.on('change', () => {
+        storyConfig = renderStoryPage(editorState.getEffectiveConfig(), storyVersion);
+        storySectionCount = storyConfig.sections.length;
+        update3DVisibility(getScrollState().currentSection);
+        requestRender();
+    });
+
+    // 3. Render initial state
+    storyConfig = renderStoryPage(editorState.getEffectiveConfig(), storyVersion);
+    storySectionCount = storyConfig.sections.length;
+
     scene1 = new THREE.Scene();
     scene2 = new THREE.Scene();
     scene1.background = new THREE.Color(0x020203);
@@ -270,7 +287,6 @@ async function init() {
     aortaHoleGroup = new THREE.Group();
     dnaGroup = new THREE.Group();
     scene1.add(group1, group2, section2Group, rainerGroup, rainerAnatomyGroup, aortaHoleGroup, dnaGroup);
-    // scene2.add(group2); // No longer needed for scene2
 
     ambient1 = new THREE.AmbientLight(0xffffff, settings.ambientIntensity);
     direct1 = new THREE.DirectionalLight(0xffffff, settings.directIntensity);
@@ -280,9 +296,6 @@ async function init() {
     const rimLight = new THREE.DirectionalLight(0x66dfff, 1.25);
     rimLight.position.set(4, 5, -6);
     scene1.add(ambient1, direct1, fillLight, rimLight);
-    // ambient2 = ambient1.clone(); // Not strictly needed
-    // direct2 = direct1.clone();
-    // scene2.add(ambient2, direct2);
 
     posCurve = new THREE.CatmullRomCurve3(hotspots.map(h => h.pos));
     lookCurve = new THREE.CatmullRomCurve3(hotspots.map(h => h.target));
@@ -327,26 +340,15 @@ async function init() {
         loader.loadModel('assets/models/dna.glb')
     ]);
 
-    console.log("Models loaded:", { sickLinesGltf, sickMeshGltf, healthyLinesGltf, healthyMeshGltf, rainerGltf, rainerAnatomyGltf, aortaHoleGltf, dnaGltf });
-
     if (sickMeshGltf) group1.add(loader.processWall(sickMeshGltf.scene, settings));
     if (sickLinesGltf) flow1.paths = loader.processPathlines(sickLinesGltf.scene);
     if (healthyMeshGltf) group2.add(loader.processWall(healthyMeshGltf.scene, settings));
     if (healthyLinesGltf) flow2.paths = loader.processPathlines(healthyLinesGltf.scene);
 
-    if (rainerGltf) {
-        rainerGroup.add(rainerGltf.scene);
-    }
-    if (rainerAnatomyGltf) {
-        rainerAnatomyGroup.add(rainerAnatomyGltf.scene);
-    }
-    if (aortaHoleGltf) {
-        aortaHoleGroup.add(aortaHoleGltf.scene);
-    }
-    if (dnaGltf) {
-        dnaGroup.add(dnaGltf.scene);
-        console.log("DNA added, children:", dnaGroup.children.length);
-    }
+    if (rainerGltf) rainerGroup.add(rainerGltf.scene);
+    if (rainerAnatomyGltf) rainerAnatomyGroup.add(rainerAnatomyGltf.scene);
+    if (aortaHoleGltf) aortaHoleGroup.add(aortaHoleGltf.scene);
+    if (dnaGltf) dnaGroup.add(dnaGltf.scene);
 
     enhanceModelMaterials(group1, 0xffffff);
     enhanceModelMaterials(group2, 0xffffff);
@@ -372,14 +374,7 @@ async function init() {
     chartManager.init();
     await applySavedEditorModels();
 
-    // Setup Reactive Updates
-    editorState.on('change', () => {
-        storyConfig = renderStoryPage(editorState.getEffectiveConfig(), storyVersion);
-        storySectionCount = storyConfig.sections.length;
-        update3DVisibility(getScrollState().currentSection);
-        requestRender();
-    });
-
+    console.log('Initializing Story Editor...');
     initStoryEditor({
         version: storyVersion,
         storyConfig,
@@ -607,6 +602,7 @@ function updateNavLinks(sectionIndex) {
     let activeNavIndex = -1;
     
     navItems.forEach((item, index) => {
+        if (!item.href) return;
         const targetSectionMatch = item.href.match(/#s(\d+)/);
         if (targetSectionMatch) {
             const targetIndex = parseInt(targetSectionMatch[1], 10) - 1;

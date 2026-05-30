@@ -21,11 +21,26 @@ export function initEditorUI({
     resetSectionModel,
     exportState
 }) {
-    let active = false;
+    let active = localStorage.getItem('editor-mode-active') === 'true';
     let statusTimer = null;
     let currentDragData = null;
     let storyConfig = initialStoryConfig;
     let state = editorState.state;
+
+    // Find the toggle button immediately
+    const toggle = document.querySelector('.editor-toggle');
+    if (!toggle) {
+        console.error('Editor toggle button not found in navbar!');
+    }
+
+    // Apply initial state
+    document.body.classList.toggle('editor-mode', active);
+    if (toggle) toggle.setAttribute('aria-pressed', String(active));
+    
+    // Ensure setActive is called to set up listeners if active
+    if (active && toggle) {
+        setActive(active);
+    }
 
     const shell = document.createElement('aside');
     shell.className = 'editor-panel';
@@ -117,6 +132,7 @@ export function initEditorUI({
             <div class="editor-actions" style="margin-top: 0;">
                 <button type="button" data-editor-action="save-local" style="background: var(--accent-red); color: #fff;">Speichern</button>
                 <button type="button" data-editor-action="export">Export JSON</button>
+                <button type="button" data-editor-action="import-json">Import JSON</button>
                 <button type="button" data-editor-action="reset-all">Reset All</button>
             </div>
             <textarea id="editor-export" readonly aria-label="Editor Export"></textarea>
@@ -124,12 +140,12 @@ export function initEditorUI({
     `;
     document.body.appendChild(shell);
 
-    const toggle = document.createElement('button');
-    toggle.type = 'button';
-    toggle.className = 'editor-toggle';
-    toggle.setAttribute('aria-pressed', 'false');
-    toggle.textContent = 'Editor';
-    document.body.appendChild(toggle);
+    // Toggle already declared at line 31
+    if (!toggle) {
+        console.error('Editor toggle button not found in navbar!');
+    } else {
+        toggle.setAttribute('aria-pressed', String(active));
+    }
 
     const quickToolbar = document.createElement('div');
     quickToolbar.className = 'editor-quick-toolbar';
@@ -1363,16 +1379,55 @@ export function initEditorUI({
         }
 
         if (action === 'export') {
-            exportBox.value = JSON.stringify(exportState(), null, 2);
-            exportBox.classList.add('is-visible');
-            exportBox.select();
-            setStatus('Export bereit', 'saved');
+            const data = JSON.stringify(exportState(), null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `scrollytelling-export-${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            setStatus('Export gestartet', 'saved');
+        }
+
+        if (action === 'import-json') {
+            document.getElementById('import-json-input').click();
         }
 
         if (action === 'reset-all' && confirm('Alle lokalen Editor-Aenderungen fuer diese Story zuruecksetzen?')) {
             editorState.removeState();
             editorState.deleteUploadedModelsForVersion().finally(() => window.location.reload());
         }
+    });
+
+    // Hidden input for import
+    const importInput = document.createElement('input');
+    importInput.type = 'file';
+    importInput.id = 'import-json-input';
+    importInput.accept = '.json';
+    importInput.style.display = 'none';
+    shell.appendChild(importInput);
+
+    importInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            try {
+                const newState = JSON.parse(event.target.result);
+                // Basic validation
+                if (newState.changes) {
+                    editorState.writeState(newState.changes);
+                    setStatus('Import erfolgreich', 'saved');
+                    setTimeout(() => window.location.reload(), 1000);
+                } else {
+                    alert('Ungültiges Dateiformat');
+                }
+            } catch (err) {
+                alert('Fehler beim Lesen der Datei');
+            }
+        };
+        reader.readAsText(file);
     });
 
     syncPanel();

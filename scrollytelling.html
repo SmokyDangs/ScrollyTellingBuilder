@@ -6,15 +6,19 @@
     <title>Aorta Vergleich - Interaktive Aufklärung</title>
     <link rel="stylesheet" href="css/style.css?v=11">
 </head>
-<body>
 <nav class="navbar">
     <a href="index.html" class="nav-logo">Aorta <span>Project</span></a>
+    <div style="display: flex; align-items: center;">
+        <ul class="nav-links" id="nav-links"></ul>
+        <button type="button" class="editor-toggle" aria-pressed="false">Editor</button>
+    </div>
     <div class="nav-toggle" id="nav-toggle">
         <span></span>
         <span></span>
         <span></span>
     </div>
-    <ul class="nav-links" id="nav-links">
+</nav>
+
         <li><a href="scrollytelling.html" class="active">Story</a></li>
         <li><a href="index.html">Dashboard</a></li>
     </ul>
@@ -189,6 +193,7 @@
         </div>
     </footer>
 
+    <script src="js/modules/debugConsole.js"></script>
 <script type="importmap">
         {
             "imports": {

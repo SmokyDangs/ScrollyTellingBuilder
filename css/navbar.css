@@ -126,3 +126,35 @@
         right: 10px;
     }
 }
+
+.editor-toggle {
+    background: rgba(255, 68, 68, 0.1);
+    color: #ff4444;
+    border: 1px solid #ff4444;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-left: 20px;
+}
+
+.editor-toggle:hover {
+    background: #ff4444;
+    color: #fff;
+}
+
+.editor-toggle[aria-pressed="true"] {
+    background: #ff4444;
+    color: #fff;
+}
+
+@media (max-width: 1024px) {
+    .editor-toggle {
+        margin-left: 10px;
+        padding: 6px 12px;
+        font-size: 0.7rem;
+    }
+}

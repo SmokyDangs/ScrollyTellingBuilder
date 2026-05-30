@@ -10,16 +10,19 @@
 <body class="dashboard-page">
     <nav class="navbar">
         <a href="index.html" class="nav-logo">Aorta <span>Project</span></a>
+        <div class="nav-links-container" style="display: flex; align-items: center;">
+            <ul class="nav-links" id="nav-links">
+                <li><a href="index.html" class="active">Dashboard</a></li>
+                <li><a href="scrollytelling-dissection.html">Option 1</a></li>
+                <li><a href="scrollytelling-aneurysm.html">Option 2</a></li>
+            </ul>
+            <button type="button" class="editor-toggle" aria-pressed="false">Editor</button>
+        </div>
         <div class="nav-toggle" id="nav-toggle">
             <span></span>
             <span></span>
             <span></span>
         </div>
-        <ul class="nav-links" id="nav-links">
-            <li><a href="index.html" class="active">Dashboard</a></li>
-            <li><a href="scrollytelling-dissection.html">Option 1</a></li>
-            <li><a href="scrollytelling-aneurysm.html">Option 2</a></li>
-        </ul>
     </nav>
 
     <div class="nav-menu-mobile" id="nav-menu-mobile">
@@ -90,6 +93,7 @@
         </div>
     </footer>
 
+    <script src="js/modules/debugConsole.js"></script>
     <script>
         const navToggle = document.getElementById('nav-toggle');
         const navMenu = document.getElementById('nav-menu-mobile');

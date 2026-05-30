@@ -215,11 +215,16 @@ function renderElementToolbar() {
         </div>
     `;
 }
-
 function renderElements(elements = [], editBasePath = 'sections.0') {
-    if (!elements || !elements.length) return '';
+    if (!elements || !elements.length) {
+        console.log('No elements to render for:', editBasePath);
+        return '';
+    }
+    console.log('Rendering elements for:', editBasePath, elements);
 
     return elements.map((element, index) => {
+// ...
+
         const elementPath = `${editBasePath}.elements.${index}`;
         const attr = `data-editor-element="${index}"`;
         const toolbar = renderElementToolbar();
@@ -363,7 +368,11 @@ export function renderStoryPage(providedConfig = null, providedVersion = null) {
     const story = document.getElementById('story');
     const pageTitle = document.querySelector('[data-story-title]');
 
-    if (story) story.innerHTML = renderSections(config.sections, version);
+    if (story) {
+        const markup = renderSections(config.sections, version);
+        console.log('Injecting markup into story:', markup);
+        story.innerHTML = markup;
+    }
     if (pageTitle) pageTitle.textContent = config.title;
     renderNavLinks(config);
 
